@@ -1,0 +1,25 @@
+model:
+  d_model: 32
+  semantic_dim: 8
+  heads: 4
+  blocks: 1
+  decoder_blocks: 1
+  tube_hw: 20
+  history_frames: 6
+  future_frames: 6
+  use_representation: true
+training:
+  seed: 20260915
+  batch_size: 4
+  num_workers: 0
+  amp: bf16
+  lr: 0.0005
+  weight_decay: 0.0001
+  grad_clip: 5.0
+  cosine_epochs: 1
+  tail_lr: 0.00005
+  final_epoch: 2
+  yaw_weight: 19.0
+  shape_weight: 0.25
+  expected_steps_per_epoch: null
+  expect_clean_e14_step: false
