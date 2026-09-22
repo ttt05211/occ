@@ -11,8 +11,9 @@ from causal_se2_occ.metrics.moving import moving_support_for_nuscenes
 from causal_se2_occ.metrics.iou import raw_counts,add_counts,metrics_from_horizon_counts
 from causal_se2_occ.metrics.bootstrap import paired_scene_bootstrap
 from causal_se2_occ.protocol import REPORT_HORIZON_INDICES,REPORT_HORIZONS_S
+from causal_se2_occ.io import prepare_output_file
 def main():
- p=argparse.ArgumentParser();p.add_argument('--dataroot',required=True);p.add_argument('--val-cache',required=True);p.add_argument('--checkpoint',required=True);p.add_argument('--output',required=True);p.add_argument('--device',default='cuda');p.add_argument('--max-windows',type=int,default=0);p.add_argument('--bootstrap-samples',type=int,default=2000);a=p.parse_args();meta,recs=load_cache(a.val_cache)
+ p=argparse.ArgumentParser();p.add_argument('--dataroot',required=True);p.add_argument('--val-cache',required=True);p.add_argument('--checkpoint',required=True);p.add_argument('--output',required=True);p.add_argument('--device',default='cuda');p.add_argument('--max-windows',type=int,default=0);p.add_argument('--bootstrap-samples',type=int,default=2000);a=p.parse_args();prepare_output_file(a.output);meta,recs=load_cache(a.val_cache)
  if not a.max_windows and (str(meta.get('split'))!='val' or int(meta.get('scene_count',-1))!=150 or int(meta.get('eligible_windows',-1))!=4369 or len(recs)!=4369):raise RuntimeError('formal evaluation requires full 150-scene/4,369-window val cache')
  if a.max_windows:recs=recs[:a.max_windows]
  src=NuScenesOcc3D(a.dataroot,split='val');_,model=load_model_checkpoint(a.checkpoint,a.device);scene_rows={};scenes=[]
