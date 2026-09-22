@@ -116,3 +116,53 @@ def make_loader(flat, batch_size, workers, seed, shuffle, device):
         pin_memory=(device.type == "cuda"),
         drop_last=False,
     )
+
+
+def capture_rng_state() -> dict:
+    state = {
+        "python": random.getstate(),
+        "numpy": np.random.get_state(),
+        "torch_cpu": torch.get_rng_state(),
+    }
+    if torch.cuda.is_available():
+        state["torch_cuda"] = torch.cuda.get_rng_state_all()
+    return state
+
+
+def restore_rng_state(state: dict) -> None:
+    if not state:
+        raise ValueError("missing RNG state")
+    random.setstate(state["python"])
+    np.random.set_state(state["numpy"])
+    torch.set_rng_state(state["torch_cpu"])
+    if torch.cuda.is_available() and "torch_cuda" in state:
+        torch.cuda.set_rng_state_all(state["torch_cuda"])
+
+
+def make_loader_with_state(
+    flat,
+    batch_size,
+    workers,
+    seed,
+    shuffle,
+    device,
+    *,
+    generator_state=None,
+):
+    generator = None
+    if shuffle:
+        generator = torch.Generator()
+        if generator_state is None:
+            generator.manual_seed(int(seed))
+        else:
+            generator.set_state(generator_state)
+    loader = DataLoader(
+        SourceDataset(flat),
+        batch_size=batch_size,
+        shuffle=shuffle,
+        generator=generator,
+        num_workers=workers,
+        pin_memory=(device.type == "cuda"),
+        drop_last=False,
+    )
+    return loader, generator
