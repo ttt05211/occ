@@ -14,6 +14,7 @@ from causal_se2_occ.inference import t0_xy_to_world_preserve_source_z
 from causal_se2_occ.priors.strong_kta import StrongKTAConfig,extract_instances,match_instances,strong_kta_sequence,inverse_warp
 from causal_se2_occ.protocol import DYNAMIC_CLASS_IDS,YAW_ENABLED_CLASS_IDS
 from causal_se2_occ.runtime.fastpath import extract_instances_cropped_exact,component_lists_equal,majority_fill_sparse_5x5x1,majority_fill_cuda_exact,inverse_warp_sequence_cuda_exact,compose_hard_a1_fast_exact,baseline_clear_flat_indices
+from causal_se2_occ.io import prepare_output_file
 GRID=OccupancyGrid();CFG=StrongKTAConfig()
 def sync(d):
  if d.type=='cuda':torch.cuda.synchronize(d)
@@ -67,7 +68,7 @@ def timed(fn,d):sync(d);t=time.perf_counter();v=fn();sync(d);return (time.perf_c
 def summary(x):
  a=np.asarray(x,dtype=float);return {'n':len(a),'mean_ms':float(a.mean()),'std_ms':float(a.std(ddof=1)) if len(a)>1 else 0.,'median_ms':float(np.median(a)),'p95_ms':float(np.quantile(a,.95))}
 def main():
- p=argparse.ArgumentParser();p.add_argument('--dataroot',required=True);p.add_argument('--val-cache',required=True);p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda');p.add_argument('--warmup-windows',type=int,default=20);p.add_argument('--measure-windows',type=int,default=200);p.add_argument('--exactness-windows',type=int,default=8);p.add_argument('--seed',type=int,default=20260918);p.add_argument('--output',required=True);a=p.parse_args();d=torch.device(a.device if a.device!='cuda' or torch.cuda.is_available() else 'cpu');_,records=load_cache(a.val_cache);rng=np.random.default_rng(a.seed);n=min(len(records),a.warmup_windows+a.measure_windows+a.exactness_windows);selected=[records[int(i)] for i in np.sort(rng.choice(len(records),size=n,replace=False))];src=NuScenesOcc3D(a.dataroot,split='val');ck,model=load_model_checkpoint(a.checkpoint,d);states=[prepare_state(r,src,d) for r in selected]
+ p=argparse.ArgumentParser();p.add_argument('--dataroot',required=True);p.add_argument('--val-cache',required=True);p.add_argument('--checkpoint',required=True);p.add_argument('--device',default='cuda');p.add_argument('--warmup-windows',type=int,default=20);p.add_argument('--measure-windows',type=int,default=200);p.add_argument('--exactness-windows',type=int,default=8);p.add_argument('--seed',type=int,default=20260918);p.add_argument('--output',required=True);a=p.parse_args();prepare_output_file(a.output);d=torch.device(a.device if a.device!='cuda' or torch.cuda.is_available() else 'cpu');_,records=load_cache(a.val_cache);rng=np.random.default_rng(a.seed);n=min(len(records),a.warmup_windows+a.measure_windows+a.exactness_windows);selected=[records[int(i)] for i in np.sort(rng.choice(len(records),size=n,replace=False))];src=NuScenesOcc3D(a.dataroot,split='val');ck,model=load_model_checkpoint(a.checkpoint,d);states=[prepare_state(r,src,d) for r in selected]
  for i,s in enumerate(states[:a.exactness_windows]):exactness(model,s,d);print(f'exactness {i+1}/{a.exactness_windows}: PASS')
  start=a.exactness_windows
  for s in states[start:start+a.warmup_windows]:pr,ba=strong_fast(s,d);o=model_forward(model,s['x'],d);render_fast(s,pr,ba,o)
