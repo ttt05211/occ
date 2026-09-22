@@ -14,7 +14,7 @@ class FutureQueryBlock(nn.Module):
     def __init__(self,dim,heads,mlp_ratio=4):
         super().__init__(); self.self_norm=nn.LayerNorm(dim); self.self_attn=nn.MultiheadAttention(dim,heads,batch_first=True); self.cross_q_norm=nn.LayerNorm(dim); self.cross_ctx_norm=nn.LayerNorm(dim); self.cross_attn=nn.MultiheadAttention(dim,heads,batch_first=True); self.ffn_norm=nn.LayerNorm(dim); self.ffn=nn.Sequential(nn.Linear(dim,dim*mlp_ratio),nn.GELU(),nn.Linear(dim*mlp_ratio,dim))
     def forward(self,q,context):
-        z=self.self_norm(q); y,_=self.self_attn(z,z,z,need_weights=False); q=q+y; ctx=self.cross_ctx_norm(context); y,_=self.cross_attn(self.cross_q_norm(q),ctx,ctx,need_weights=False); q=q+y; return q+self.ffn(self.ffn_norm(q))
+        z=self.self_norm(q); y,_=self.self_attn(z,z,z,need_weights=False); q=q+y; y,_=self.cross_attn(self.cross_q_norm(q),self.cross_ctx_norm(context),self.cross_ctx_norm(context),need_weights=False); q=q+y; return q+self.ffn(self.ffn_norm(q))
 @dataclass(frozen=True)
 class ModelConfig:
     d_model:int=128; semantic_dim:int=32; heads:int=4; blocks:int=4; decoder_blocks:int=2; tube_hw:int=20; history_frames:int=HISTORY_FRAMES; future_frames:int=FUTURE_FRAMES; use_representation:bool=True
